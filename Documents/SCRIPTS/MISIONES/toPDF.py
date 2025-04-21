@@ -7,17 +7,16 @@ class GeneradorPDF:
 
 
     def __init__(self, archivo_txt, salida_pdf):
-        self.archivo_txt = archivo_txt
-        self.salida_pdf = salida_pdf
-        self.form = self.config_por_defecto()
-        self.c = canvas.Canvas(salida_pdf, pagesize=self.config_actual['page_size'])
-        self.buffer = []  # Acumula líneas hasta que se decide dibujar
-        self.pos_y = self.config_actual['start_y']
+        self.archivo_txt = archivo_txt #TODO ¿tiene utilidad esto?
+        self.salida_pdf = salida_pdf #TODO ¿tiene utilidad esto?
+        self.config = self.estilo_paguina()
+        self.c = canvas.Canvas(salida_pdf, pagesize=self.config_actual['page_size']) #TODO ¿tiene utilidad los parametros?
+
 
     def procesar(self):
 
         '''
-        Procesa el archivo y generar el pdf
+        Procesa el archivo y genera el pdf
 
         '''
         with open(self.archivo_txt, 'r', encoding='utf-8') as f:
@@ -35,31 +34,32 @@ class GeneradorPDF:
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
-                        
                         textobject.textLine(cadena) #guardo la linea
                         cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
-                        '''quizas debamomos guardar el tipo de estilo de hoja'''
-                        #TODO
-                        #guardamos el texto acumulado con el formato acumulado
-                        #creamos una hoja nueva
-                        pass
-                
-                    elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la 
+                        estilo_paguina(c ,self.config)
+                        c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
+                        c.showPage() #creamos una hoja nueva
+
+                    elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
                                         
                     elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
         
                     elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
+                         #TODO: completar
                          #acá iria la funcion decoder y luego incrustar el codigo de barras
                         pass #borrar el pass
 
                     else:
                         next_line = next(f) #lectura de la proxima linea
                         if 'FIRST DATA' in next_line:
-                            pass
+                            estilo_paguina(c ,self.config)
+                            c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
+                            c.showPage() #creamos una hoja nueva
+                            
                             #grabamos la hoja y abrimos una nueva
 
                 elif primer_caracter == ' ' or primer_caracter == '0': 
@@ -69,13 +69,31 @@ class GeneradorPDF:
                     textobject.textLine(cadena) #guardamos la linea
                     cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
                 
-                #TODO
-                #guardamos el texto acumulado con el formato acumulado
-                #creamos una hoja nueva               
-                #si el contador llega a su limite hay que crear una hoja nueva
-
+                if cont == config['limite']: #controla so llegamos a la cantidada de lineas permitidas por paguina
+                    estilo_paguina(c ,self.config)
+                    c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
+                    c.showPage() #creamos una hoja nueva
+                    continue
+                
+                estilo_paguina(c ,self.config)
+                c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
+                c.showPage() #creamos una hoja nueva
+    
         self.c.save()
     
+    def configura_paguina (c, config):
+        """
+        Configura la paguina nueva según la configuracion recibida
+        """
+        #TODO verificar correcta configuracion
+        #tipo de letra
+        #coordenadas de escritura
+        #Tipo de letra
+        #orientacion de la paguina
+        textobject.setTextOrigin(100, 750)
+        #textobject.setFont("Helvetica", 12)
+        pass
+
     def extraer_form(linea):
 
         """Esta función devuelve el tipo de formulario en la línea dada.
@@ -100,7 +118,7 @@ class GeneradorPDF:
         else:
             return None  # Ninguna coincidencia
         
-    def asigna_estilo_paguina(form):
+    def estilo_paguina(form ='DLFT00'):
         '''
         Esta función recibe el tipo de formulario y devuelve la configuración correspondiente.
         '''
