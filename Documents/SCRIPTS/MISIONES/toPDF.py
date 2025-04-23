@@ -7,10 +7,11 @@ class GeneradorPDF:
 
 
     def __init__(self, archivo_txt, salida_pdf):
-        self.archivo_txt = archivo_txt #TODO ¿tiene utilidad esto?
-        self.salida_pdf = salida_pdf #TODO ¿tiene utilidad esto?
+        self.archivo_txt = archivo_txt #Nombre del archivo txt que vamos a procesar
+        self.salida_pdf = salida_pdf #Nombre del archivo del PDF convertido
+        self.form = 'DLFT00' #asignamos un formulario tipo default
         self.config = self.estilo_paguina()
-        self.c = canvas.Canvas(salida_pdf, pagesize=self.config_actual['page_size']) #TODO ¿tiene utilidad los parametros?
+        self.c = canvas.Canvas(self.salida_pdf)
 
 
     def procesar(self):
@@ -38,7 +39,8 @@ class GeneradorPDF:
                         cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
-                        estilo_paguina(c ,self.config)
+                        self.config = self.estilo_paguina(self.form)
+                        #TODO configurar paguina
                         c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
                         c.showPage() #creamos una hoja nueva
 
@@ -50,13 +52,17 @@ class GeneradorPDF:
         
                     elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
                          #TODO: completar
-                         #acá iria la funcion decoder y luego incrustar el codigo de barras
+                         #if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
+                         #llamamos al decoder y guardamos el numero
+                         #
+                         #incrustar el codigo de barras
                         pass #borrar el pass
 
                     else:
                         next_line = next(f) #lectura de la proxima linea
                         if 'FIRST DATA' in next_line:
-                            estilo_paguina(c ,self.config)
+                            self.config = self.estilo_paguina(self.form)
+                            #TODO configurar paguina
                             c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
                             c.showPage() #creamos una hoja nueva
                             
@@ -68,20 +74,21 @@ class GeneradorPDF:
 
                     textobject.textLine(cadena) #guardamos la linea
                     cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
-                
+
                 if cont == config['limite']: #controla so llegamos a la cantidada de lineas permitidas por paguina
-                    estilo_paguina(c ,self.config)
+                    self.config = self.estilo_paguina(self.form)
+                    #TODO configurar paguina
                     c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
                     c.showPage() #creamos una hoja nueva
                     continue
                 
-                estilo_paguina(c ,self.config)
-                c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
-                c.showPage() #creamos una hoja nueva
+            self.config = self.estilo_paguina(self.form)
+            #TODO configurar paguina
+            c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
     
         self.c.save()
     
-    def configura_paguina (c, config):
+    def configura_paguina (self, c, config):
         """
         Configura la paguina nueva según la configuracion recibida
         """
@@ -94,7 +101,7 @@ class GeneradorPDF:
         #textobject.setFont("Helvetica", 12)
         pass
 
-    def extraer_form(linea):
+    def extraer_form(self, linea):
 
         """Esta función devuelve el tipo de formulario en la línea dada.
         Busca coincidencias con la expresión regular 'FORMS=XXXX' o 
@@ -118,7 +125,7 @@ class GeneradorPDF:
         else:
             return None  # Ninguna coincidencia
         
-    def estilo_paguina(form ='DLFT00'):
+    def estilo_paguina(self, form ='DLFT00'):
         '''
         Esta función recibe el tipo de formulario y devuelve la configuración correspondiente.
         '''
@@ -178,3 +185,43 @@ class GeneradorPDF:
             return configuraciones['codbarra']     # Configuración para los codigos de barras
         else:
             return None     # si no existe la configuracíon
+
+
+#TODO: para pensar, el metodo decoder ¿conviene generarlo dentro de la clase o fuera? supongo que fuera así no cargamos un objeto tan pesado, pensar lo mismo con la funcion stilo de paguina
+def decoder(codigo):
+    '''
+    Decodifica el codigo WwNnn en un numero entero
+    
+    '''
+    # Tabla de mapeo de 5 caracteres a dígitos
+    cod = {
+    'nnWWn': '00', 'NnwwN': '01', 'nNwwN': '02', 'NNwwn': '03', 'nnWwN': '04',
+    'NnWwn': '05', 'nNWwn': '06', 'nnwWN': '07', 'NnwWn': '08', 'nNwWn': '09',
+    'wnNNw': '10', 'WnnnW': '11', 'wNnnW': '12', 'WNnnw': '13', 'wnNnW': '14',
+    'WnNnw': '15', 'wNNnw': '16', 'wnnNW': '17', 'WnnNw': '18', 'wNnNw': '19',
+    'nwNNw': '20', 'NwnnW': '21', 'nWnnW': '22', 'NWnnw': '23', 'nwNnW': '24',
+    'NwNnw': '25', 'nWNnw': '26', 'nwnNW': '27', 'NwnNw': '28', 'nWnNw': '29',
+    'wwNNn': '30', 'WwnnN': '31', 'wWnnN': '32', 'WWnnn': '33', 'wwNnN': '34',
+    'WwNnn': '35', 'wWNnn': '36', 'wwnNN': '37', 'WwnNn': '38', 'wWnNn': '39',
+    'nnWNw': '40', 'NnwnW': '41', 'nNwnW': '42', 'NNwnw': '43', 'nnWnW': '44',
+    'NnWnw': '45', 'nNWnw': '46', 'nnwNW': '47', 'NnwNw': '48', 'nNwNw': '49',
+    'wnWNn': '50', 'WnwnN': '51', 'wNwnN': '52', 'WNwnn': '53', 'wnWnN': '54',
+    'WnWnn': '55', 'wNWnn': '56', 'wnwNN': '57', 'WnwNn': '58', 'wNwNn': '59',
+    'nwWNn': '60', 'NwwnN': '61', 'nWwnN': '62', 'NWwnn': '63', 'nwWnN': '64',
+    'NwWnn': '65', 'nWWnn': '66', 'nwwNN': '67', 'NwwNn': '68', 'nWwNn': '69',
+    'nnNWw': '70', 'NnnwW': '71', 'nNnwW': '72', 'NNnww': '73', 'nnNwW': '74',
+    'NnNww': '75', 'nNNww': '76', 'nnnWW': '77', 'NnnWw': '78', 'nNnWw': '79',
+    'wnNWn': '80', 'WnnwN': '81', 'wNnwN': '82', 'WNnwn': '83', 'wnNwN': '84',
+    'WnNwn': '85', 'wNNwn': '86', 'wnnWN': '87', 'WnnWn': '88', 'wNnWn': '89',
+    'nwNWn': '90', 'NwnwN': '91', 'nWnwN': '92', 'NWnwn': '93', 'nwNwN': '94',
+    'NwNwn': '95', 'nWNwn': '96', 'nwnWN': '97', 'NwnWn': '98', 'nWnWn': '99'
+}
+
+
+    tarjeta_numero = ""
+
+    for i in range(0, len(codigo), 5):
+        key = codigo[i: i + 5]
+        tarjeta_numero += cod[key]
+
+    return tarjeta_numero
