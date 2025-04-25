@@ -10,45 +10,45 @@ class GeneradorPDF:
         self.archivo_txt = archivo_txt #Nombre del archivo txt que vamos a procesar
         self.salida_pdf = salida_pdf #Nombre del archivo del PDF convertido
         self.form = 'DLFT00' #asignamos un formulario tipo default
-        self.config = self.estilo_paguina()
+        self.config = self.estilo_paguina(self.form)
         self.c = canvas.Canvas(self.salida_pdf)
+        self.textobject = None #Se establecera en configurar_paguina()
+        self.cont = 0 #contador de líneas en la página
 
 
     def procesar(self):
 
         '''
         Procesa el archivo y genera el pdf
-
         '''
+        
         with open(self.archivo_txt, 'r', encoding='utf-8') as f:
 
-
             #instanciamos el objeto texto
-            textobject = self.c.beginText()
+            self.textobject = self.c.beginText()
 
             for linea in f:
                 
-                cont = 0 #Inicializamos el contador de lineas
                 primer_caracter = linea[0] #leemos el primer caracter
                 cadena = linea[1:] #resto de la cadena
 
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
-                        textobject.textLine(cadena) #guardo la linea
+                        self.textobject.textLine(cadena) #guardo la linea
                         cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
                         self.config = self.estilo_paguina(self.form)
-                        #TODO configurar paguina
-                        c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
-                        c.showPage() #creamos una hoja nueva
+                        self.configura_paguina(self.c, self.config)
+                        self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+                        self.c.showPage() #creamos una hoja nueva
+                        self.cont = 0 #inicializamos nuevamente el contador
+                        self.textobject = self.c.beginText() #inicializamos nuevamete el objeto texto
+
 
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
-                                        
-                    elif primer_caracter == '+':
-                        continue #si encontramos un signo + saltamos la iteracion para no guardar nada
         
                     elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
                          #TODO: completar
@@ -59,46 +59,68 @@ class GeneradorPDF:
                         pass #borrar el pass
 
                     else:
-                        next_line = next(f) #lectura de la proxima linea
+                        try:
+                            next_line = next(f) #lectura de la proxima linea
+                        except StopIteration:
+                            next_line = ''
+
                         if 'FIRST DATA' in next_line:
                             self.config = self.estilo_paguina(self.form)
-                            #TODO configurar paguina
-                            c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
-                            c.showPage() #creamos una hoja nueva
+                            self.configura_paguina(self.c, self.config)
+                            self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+                            self.c.showPage() #creamos una hoja nueva
+                            self.cont = 0 #inicializamos nuevamente el contador
+                            self.textobject = self.c.beginText() 
                             
-                            #grabamos la hoja y abrimos una nueva
+                        #grabamos la hoja y abrimos una nueva
+                
+                elif primer_caracter == '+':
+                        continue #si encontramos un signo + saltamos la iteracion para no guardar nada
 
                 elif primer_caracter == ' ' or primer_caracter == '0': 
                     if 'DJDE' in cadena: #si vemos DJDE en la linea no guardamos nada
                         continue
-
-                    textobject.textLine(cadena) #guardamos la linea
+                    self.textobject.textLine(cadena) #guardamos la linea
                     cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
 
-                if cont == config['limite']: #controla so llegamos a la cantidada de lineas permitidas por paguina
+                if cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por paguina
                     self.config = self.estilo_paguina(self.form)
-                    #TODO configurar paguina
-                    c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
-                    c.showPage() #creamos una hoja nueva
+                    self.configura_paguina(self.c, self.config)
+                    self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+                    self.c.showPage() #creamos una hoja nueva
+                    self.cont = 0 #inicializamos nuevamente el contador
+                    self.textobject = self.c.beginText()
                     continue
                 
             self.config = self.estilo_paguina(self.form)
-            #TODO configurar paguina
-            c.drawText(textobject) #guardamos el texto acumulado con el formato correspondiente
-    
+            self.configura_paguina(self.c, self.config)
+            self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+            self.c.showPage() #creamos una hoja nueva
+            self.cont = 0 #inicializamos nuevamente el contador
+            self.textobject = self.c.beginText()
+            
         self.c.save()
     
     def configura_paguina (self, c, config):
         """
         Configura la paguina nueva según la configuracion recibida
         """
-        #TODO verificar correcta configuracion
-        #tipo de letra
-        #coordenadas de escritura
-        #Tipo de letra
-        #orientacion de la paguina
-        textobject.setTextOrigin(100, 750)
-        #textobject.setFont("Helvetica", 12)
+        #setear el tama;o de la paguina
+        c.setPageSize(config['orientacion'])
+
+        #set font
+        c.setFont(config['font_name'], config['tamaño_letra'])
+
+        #TODO: set coordenadas de escritura - se pasan cunado debujamos osea en el drawText
+
+
+        #TODO ¿nos comviene pasar el texto, configurar el marco en esta funcion? 
+        #es necesario el:
+        #textobject
+        #eliminar el drawText y eliminarlos en el resto de la clase
+        
+        
+        
         pass
 
     def extraer_form(self, linea):
@@ -125,69 +147,67 @@ class GeneradorPDF:
         else:
             return None  # Ninguna coincidencia
         
-    def estilo_paguina(self, form ='DLFT00'):
-        '''
-        Esta función recibe el tipo de formulario y devuelve la configuración correspondiente.
-        '''
-        # Definición de las distintas configuraciones de página.
-        # Cada configuración es un diccionario que contiene todos los parámetros.
-        configuraciones = {
-            'default': {
-                'orientacion': landscape(letter) , 'marco': False, 'base': None, 'altura': None, 
-                'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 590, 'font_name': 'Courier', 
-                'tamaño_letra': 7, 'x_offset': -85, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
-                'marca_agua' : False, 'cod_barra' : False
-            },
-            'etiqueta': {
-                'orientacion': portrait(letter), 'marco': False, 'base': None, 'altura': None, 
-                'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 785, 'font_name': 'Courier', 
-                'tamaño_letra': 9, 'x_offset': -95, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
-                'marca_agua' : False, 'cod_barra' : False
-            },
-            'vertical': {
-                'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
-                'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
-                'tamaño_letra': 7, 'x_offset': -75, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
-                'marca_agua' : True, 'cod_barra' : False        
-            },
-            'horizontal': {
-                'orientacion': landscape(letter), 'marco': True, 'base': 760, 'altura': 584, 
-                'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 590, 'font_name': 'Courier-Bold', 
-                'tamaño_letra': 7, 'x_offset': -85, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
-                'marca_agua' : True, 'cod_barra' : False
-            },
-            'codbarra': {
-                'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
-                'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
-                'tamaño_letra': 8, 'x_offset': -85, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
-                'marca_agua' : False, 'cod_barra' : True, 
-            }
+def estilo_paguina(form ='DLFT00'):
+    '''
+    Esta función recibe el tipo de formulario y devuelve la configuración correspondiente.
+    '''
+    # Definición de las distintas configuraciones de página.
+    # Cada configuración es un diccionario que contiene todos los parámetros.
+    configuraciones = {
+        'default': {
+            'orientacion': landscape(letter) , 'marco': False, 'base': None, 'altura': None, 
+            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 590, 'font_name': 'Courier', 
+            'tamaño_letra': 7, 'x_offset': -85, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
+            'marca_agua' : False, 'cod_barra' : False
+        },
+        'etiqueta': {
+            'orientacion': portrait(letter), 'marco': False, 'base': None, 'altura': None, 
+            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 785, 'font_name': 'Courier', 
+            'tamaño_letra': 9, 'x_offset': -95, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
+            'marca_agua' : False, 'cod_barra' : False
+        },
+        'vertical': {
+            'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
+            'tamaño_letra': 7, 'x_offset': -75, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
+            'marca_agua' : True, 'cod_barra' : False        
+        },
+        'horizontal': {
+            'orientacion': landscape(letter), 'marco': True, 'base': 760, 'altura': 584, 
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 590, 'font_name': 'Courier-Bold', 
+            'tamaño_letra': 7, 'x_offset': -85, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
+            'marca_agua' : True, 'cod_barra' : False
+        },
+        'codbarra': {
+            'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
+            'tamaño_letra': 8, 'x_offset': -85, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
+            'marca_agua' : False, 'cod_barra' : True, 
         }
-        
-        # Listas de formularios que pertenecen a cada configuración.
-        formularios_vertical = {'FM0006', 'FL0006', 'FL2007', 'FM0007', 'FM0004', 'FL0005', 'FM0308', 'FM0005', 'SIME18', 'FL002E', 'FM0308', 'FRBLAN'}
-        formularios_horizontal = {'FL1000', 'FM0007'}
-        formularios_etiqueta = {'ETQIBM'}
-        formulario_default =  {'DLFT00'}
-        formulario_codbarra = {'CODBAR'}
+    }
+    
+    # Listas de formularios que pertenecen a cada configuración.
+    formularios_vertical = {'FM0006', 'FL0006', 'FL2007', 'FM0007', 'FM0004', 'FL0005', 'FM0308', 'FM0005', 'SIME18', 'FL002E', 'FM0308', 'FRBLAN'}
+    formularios_horizontal = {'FL1000', 'FM0007'}
+    formularios_etiqueta = {'ETQIBM'}
+    formulario_default =  {'DLFT00'}
+    formulario_codbarra = {'CODBAR'}
 
-        # Verifica si el formulario pertenece a la lista de formularios horizontales, verticales o de etiquetas.
-        # Devuelve la configuración correspondiente según el tipo de formulario.
-        if form in formularios_horizontal:
-            return configuraciones['horizontal']  # Configuración HORIZONTAL
-        elif form in formularios_vertical:
-            return configuraciones['vertical']    # Configuración VERTICAL
-        elif form in formularios_etiqueta:
-            return configuraciones['etiqueta']    # Configuración ETIQUETA
-        elif form in formulario_default:
-            return configuraciones['default']     # Configuración DEFAULT (por defecto)
-        elif form in formulario_codbarra:
-            return configuraciones['codbarra']     # Configuración para los codigos de barras
-        else:
-            return None     # si no existe la configuracíon
+    # Verifica si el formulario pertenece a la lista de formularios horizontales, verticales o de etiquetas.
+    # Devuelve la configuración correspondiente según el tipo de formulario.
+    if form in formularios_horizontal:
+        return configuraciones['horizontal']  # Configuración HORIZONTAL
+    elif form in formularios_vertical:
+        return configuraciones['vertical']    # Configuración VERTICAL
+    elif form in formularios_etiqueta:
+        return configuraciones['etiqueta']    # Configuración ETIQUETA
+    elif form in formulario_default:
+        return configuraciones['default']     # Configuración DEFAULT (por defecto)
+    elif form in formulario_codbarra:
+        return configuraciones['codbarra']     # Configuración para los codigos de barras
+    else:
+        return None     # si no existe la configuracíon
 
-
-#TODO: para pensar, el metodo decoder ¿conviene generarlo dentro de la clase o fuera? supongo que fuera así no cargamos un objeto tan pesado, pensar lo mismo con la funcion stilo de paguina
 def decoder(codigo):
     '''
     Decodifica el codigo WwNnn en un numero entero
