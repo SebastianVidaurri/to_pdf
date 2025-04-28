@@ -15,7 +15,6 @@ class GeneradorPDF:
         self.textobject = None #Se establecera en configurar_paguina()
         self.cont = 0 #contador de líneas en la página
 
-
     def procesar(self):
 
         '''
@@ -40,8 +39,7 @@ class GeneradorPDF:
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
                         self.config = self.estilo_paguina(self.form)
-                        self.configura_paguina(self.c, self.config)
-                        self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+                        self.escribe_pdf(self.c, self.config, self.textobject)
                         self.c.showPage() #creamos una hoja nueva
                         self.cont = 0 #inicializamos nuevamente el contador
                         self.textobject = self.c.beginText() #inicializamos nuevamete el objeto texto
@@ -66,8 +64,7 @@ class GeneradorPDF:
 
                         if 'FIRST DATA' in next_line:
                             self.config = self.estilo_paguina(self.form)
-                            self.configura_paguina(self.c, self.config)
-                            self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+                            self.escribe_pdf(self.c, self.config, self.textobject)
                             self.c.showPage() #creamos una hoja nueva
                             self.cont = 0 #inicializamos nuevamente el contador
                             self.textobject = self.c.beginText() 
@@ -85,43 +82,40 @@ class GeneradorPDF:
 
                 if cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por paguina
                     self.config = self.estilo_paguina(self.form)
-                    self.configura_paguina(self.c, self.config)
-                    self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+                    self.escribe_pdf(self.c, self.config, self.textobject)
                     self.c.showPage() #creamos una hoja nueva
                     self.cont = 0 #inicializamos nuevamente el contador
                     self.textobject = self.c.beginText()
                     continue
                 
             self.config = self.estilo_paguina(self.form)
-            self.configura_paguina(self.c, self.config)
-            self.c.drawText(self.textobject) #guardamos el texto acumulado con el formato correspondiente
+            self.escribe_pdf(self.c, self.config, self.textobject)
             self.c.showPage() #creamos una hoja nueva
             self.cont = 0 #inicializamos nuevamente el contador
             self.textobject = self.c.beginText()
             
         self.c.save()
     
-    def configura_paguina (self, c, config):
+    def escribe_pdf (self, c, config, texto):
         """
-        Configura la paguina nueva según la configuracion recibida
+        Configura y escribe el texto  a un pdf
+
+        parametros:
+            c: objeto canvas
+            config: lista con los valores de configuración
+            texto: el texto que de decea escribir en el pdf
         """
-        #setear el tama;o de la paguina
+        #setear el tamaño de la paguina
         c.setPageSize(config['orientacion'])
 
         #set font
         c.setFont(config['font_name'], config['tamaño_letra'])
 
-        #TODO: set coordenadas de escritura - se pasan cunado debujamos osea en el drawText
+        #grabamos en texto en el pdf
+        c.drawText(config['x_offset'], config['y'], texto)
 
 
-        #TODO ¿nos comviene pasar el texto, configurar el marco en esta funcion? 
-        #es necesario el:
-        #textobject
-        #eliminar el drawText y eliminarlos en el resto de la clase
-        
-        
-        
-        pass
+
 
     def extraer_form(self, linea):
 
