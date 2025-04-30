@@ -10,9 +10,9 @@ class GeneradorPDF:
         self.archivo_txt = archivo_txt #Nombre del archivo txt que vamos a procesar
         self.salida_pdf = salida_pdf #Nombre del archivo del PDF convertido
         self.form = 'DLFT00' #asignamos un formulario tipo default
-        self.config = self.estilo_paguina(self.form)
+        self.config = estilo_pagina(self.form)
         self.c = canvas.Canvas(self.salida_pdf)
-        self.textobject = None #Se establecera en configurar_paguina()
+        self.textobject = None #Se establecera en configurar_pagina()
         self.cont = 0 #contador de líneas en la página
 
     def procesar(self):
@@ -35,10 +35,10 @@ class GeneradorPDF:
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
                         self.textobject.textLine(cadena) #guardo la linea
-                        cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
+                        self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
-                        self.config = self.estilo_paguina(self.form)
+                        self.config = estilo_pagina(self.form)
                         self.escribe_pdf(self.c, self.config, self.textobject)
                         self.c.showPage() #creamos una hoja nueva
                         self.cont = 0 #inicializamos nuevamente el contador
@@ -47,15 +47,6 @@ class GeneradorPDF:
 
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
-        
-                    elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
-                         #TODO: completar
-                         #if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
-                         #llamamos al decoder y guardamos el numero
-                         #
-                         #incrustar el codigo de barras
-                        pass #borrar el pass
-
                     else:
                         try:
                             next_line = next(f) #lectura de la proxima linea
@@ -63,14 +54,20 @@ class GeneradorPDF:
                             next_line = ''
 
                         if 'FIRST DATA' in next_line:
-                            self.config = self.estilo_paguina(self.form)
+                            self.config = estilo_pagina(self.form)
                             self.escribe_pdf(self.c, self.config, self.textobject)
                             self.c.showPage() #creamos una hoja nueva
                             self.cont = 0 #inicializamos nuevamente el contador
-                            self.textobject = self.c.beginText() 
-                            
-                        #grabamos la hoja y abrimos una nueva
-                
+                            self.textobject = self.c.beginText()
+
+                elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
+                         #TODO: completar
+                         #if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
+                         #llamamos al decoder y guardamos el numero
+                         #
+                         #incrustar el codigo de barras
+                        pass #borrar el pass            
+            
                 elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
 
@@ -78,17 +75,17 @@ class GeneradorPDF:
                     if 'DJDE' in cadena: #si vemos DJDE en la linea no guardamos nada
                         continue
                     self.textobject.textLine(cadena) #guardamos la linea
-                    cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de paguina
+                    self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
-                if cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por paguina
-                    self.config = self.estilo_paguina(self.form)
+                if self.cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por pagina
+                    self.config = estilo_pagina(self.form)
                     self.escribe_pdf(self.c, self.config, self.textobject)
                     self.c.showPage() #creamos una hoja nueva
                     self.cont = 0 #inicializamos nuevamente el contador
                     self.textobject = self.c.beginText()
                     continue
                 
-            self.config = self.estilo_paguina(self.form)
+            self.config = estilo_pagina(self.form)
             self.escribe_pdf(self.c, self.config, self.textobject)
             self.c.showPage() #creamos una hoja nueva
             self.cont = 0 #inicializamos nuevamente el contador
@@ -105,7 +102,7 @@ class GeneradorPDF:
             config: lista con los valores de configuración
             texto: el texto que de decea escribir en el pdf
         """
-        #setear el tamaño de la paguina
+        #setear el tamaño de la pagina
         c.setPageSize(config['orientacion'])
 
         #set font
@@ -141,7 +138,7 @@ class GeneradorPDF:
         else:
             return None  # Ninguna coincidencia
         
-def estilo_paguina(form ='DLFT00'):
+def estilo_pagina(form ='DLFT00'):
     '''
     Esta función recibe el tipo de formulario y devuelve la configuración correspondiente.
     '''
