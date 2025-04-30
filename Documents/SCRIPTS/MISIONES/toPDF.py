@@ -1,3 +1,5 @@
+import os
+from tkinter import Tk
 from reportlab.lib.pagesizes import landscape, letter, portrait
 from reportlab.pdfgen import canvas
 import re
@@ -47,6 +49,7 @@ class GeneradorPDF:
 
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
+                        self.config = estilo_pagina(self.form) #selecionamos la configuracion del formulario
                     else:
                         try:
                             next_line = next(f) #lectura de la proxima linea
@@ -54,7 +57,7 @@ class GeneradorPDF:
                             next_line = ''
 
                         if 'FIRST DATA' in next_line:
-                            self.config = estilo_pagina(self.form)
+                            #TODO: Cambiar las sigientes lineas por una funcion ***** self.nueva_pagina()
                             self.escribe_pdf(self.c, self.config, self.textobject)
                             self.c.showPage() #creamos una hoja nueva
                             self.cont = 0 #inicializamos nuevamente el contador
@@ -78,20 +81,27 @@ class GeneradorPDF:
                     self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                 if self.cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por pagina
-                    self.config = estilo_pagina(self.form)
+                    #***self.nueva_pagina()
                     self.escribe_pdf(self.c, self.config, self.textobject)
                     self.c.showPage() #creamos una hoja nueva
                     self.cont = 0 #inicializamos nuevamente el contador
                     self.textobject = self.c.beginText()
                     continue
-                
-            self.config = estilo_pagina(self.form)
+            #***self.nueva_pagina()
             self.escribe_pdf(self.c, self.config, self.textobject)
             self.c.showPage() #creamos una hoja nueva
             self.cont = 0 #inicializamos nuevamente el contador
             self.textobject = self.c.beginText()
             
         self.c.save()
+    '''
+    def nueva_pagina(self):
+        self.config = estilo_pagina(self.form)
+        self.escribe_pdf(self.c, self.config, self.textobject)
+        self.c.showPage()
+        self.cont = 0
+        self.textobject = self.c.beginText()
+    '''
     
     def escribe_pdf (self, c, config, texto):
         """
@@ -109,7 +119,8 @@ class GeneradorPDF:
         c.setFont(config['font_name'], config['tamaño_letra'])
 
         #grabamos en texto en el pdf
-        c.drawText(config['x_offset'], config['y'], texto)
+        texto.setTextOrigin(config['x_offset'], config['y'])
+        c.drawText(texto)
 
 
 
@@ -200,6 +211,7 @@ def estilo_pagina(form ='DLFT00'):
         return None     # si no existe la configuracíon
 
 def decoder(codigo):
+
     '''
     Decodifica el codigo WwNnn en un numero entero
     
@@ -236,3 +248,126 @@ def decoder(codigo):
         tarjeta_numero += cod[key]
 
     return tarjeta_numero
+
+def leer_config(ruta_archivo):
+    '''
+    Lee la configuracion del programa
+    El txt debe contener todos los campos utilizados
+ 
+    config['IN']: ruta de entrada
+    config['out']: ruta de salida
+    '''
+    config = {}
+    try:
+        with open(ruta_archivo, 'r') as archivo:
+            lineas = archivo.readlines()
+            #ruta IN
+            config['IN'] = lineas[0].strip()
+            config['OUT'] = lineas[1].strip()
+    except FileNotFoundError:
+        print(f"El archivo '{ruta_archivo}' no se encontró.")
+    except IOError:
+        print(f"No se pudo leer el archivo '{ruta_archivo}'.")
+    return config
+
+def lista_nombres_archivos (ruta_carpeta):
+    '''
+    devuelve una lista con los nombres de los archivos existentes en una carpeta especifica
+    '''
+    try:
+        # Lista para almacenar nombres de archivos
+        lista_de_nombres = []
+        # Iterar sobre los archivos en la carpeta
+        for archivo in os.listdir(ruta_carpeta):
+            # Verificar si es un archivo .txt
+            if archivo.endswith('.TXT') or archivo.endswith('.PDF') or archivo.endswith('.txt'):
+                lista_de_nombres.append(archivo[:-4])
+
+            else:
+                lista_de_nombres.append(archivo)
+        # Devolver la lista de nombres de archivos
+        return lista_de_nombres
+    except FileNotFoundError:
+        print(f"La carpeta '{ruta_carpeta}' no se encontró.")
+        return []
+    except IOError:
+        print(f"No se pudo leer la carpeta '{ruta_carpeta}'.")
+        return []
+    
+def file_sin_procesar(ruta_in, ruta_out):
+    '''
+    devuelve los elementos de lista_in menos lista_out,
+    se utilizara para obtener la lista de los elementos que aún no estan procesados
+    '''
+    try:
+        #obtenemos las lista de los archivos que estan en las rutas de entrada y salida
+ 
+        #TO_DO: seria mejor que la lista de salida las lea de un archivo que contenga el historial de los archivos procesados
+        lista_in = lista_nombres_archivos(ruta_in)
+        lista_out = lista_nombres_archivos(ruta_out)
+
+        # Convertir ambas listas a conjuntos para realizar la diferencia
+        set_in = set(lista_in)
+        set_out = set(lista_out)
+        # Obtener los archivos que están en lista_in pero no en lista_out
+        archivos_faltantes = set_in - set_out
+        # Devolver la lista de archivos faltantes
+        return list(archivos_faltantes)
+
+def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivos sin procesar
+    '''
+    Llama a las funciones más importantes
+    '''
+    #funcion raiz que llama a las funciones más importantes
+    
+    sin_procesar = lista_sin_procesar
+    for nombre_archivo in sin_procesar: #recorro la lista de nombres
+        #TODO: logica para procesar el txt y generar el pdf
+        #necesario nombre_archivo
+        #config['IN'] config['OUT']
+        #revisar la logica por que ya creamos una clase con sus metodos correspondientes para h
+
+def crear_interfaz_usuario(nombre_archivos, ruta):
+
+    ventana = tk.Tk()
+    ventana.title("Misiones 2.2")
+    ventana.iconbitmap("fiserv_logo-1-368x184.ico")
+    ventana.geometry("500x250")  # Tamaño de la ventana
+
+    fondo_path = 'fondo_fiserv.png'   # Reemplaza con la ruta correcta
+    if os.path.exists(fondo_path):
+        imagen_fondo = Image.open(fondo_path)
+        fondo = ImageTk.PhotoImage(imagen_fondo)
+        
+        fondo_label = tk.Label(ventana, image=fondo)
+        fondo_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Enlazar el evento de redimensionamiento al ajuste del fondo
+        ventana.bind("<Configure>", lambda e: ajustar_tamano_fondo(ventana, fondo_label, imagen_fondo))
+
+    # Agregar el botón para seleccionar el archivo
+    boton_seleccionar = tk.Button(ventana, text= "Procesar archivos",command = lambda: crea_archivos(nombre_archivos, ruta))
+    boton_seleccionar.pack(pady=20)       
+    
+    # Enlazar el evento de cerrar ventana
+    ventana.protocol("WM_DELETE_WINDOW", lambda: cerrar_ventana(ventana))
+
+    # Iniciar el bucle principal de la interfaz de usuario
+    ventana.mainloop()
+def ajustar_tamano_fondo(ventana, fondo_label, imagen_fondo):
+    nueva_ancho = ventana.winfo_width()
+    nueva_alto = ventana.winfo_height()
+    imagen_redimensionada = imagen_fondo.resize((nueva_ancho, nueva_alto))
+    nuevo_fondo = ImageTk.PhotoImage(imagen_redimensionada)
+    fondo_label.configure(image=nuevo_fondo)
+    fondo_label.image = nuevo_fondo  # Actualiza la referencia del objeto de la imagen
+
+def cerrar_ventana(ventana):
+    ventana.destroy()
+    sys.exit()  # Termina la ejecución del programa
+
+if __name__ == "__main__":
+
+    config = leer_config('config.txt') #busca la configuracion donde se encuentra el script
+    sin_procesar = file_sin_procesar(config['IN'], config['OUT']) #obtenemos la lista de los archivos sin procesar
+    crear_interfaz_usuario(sin_procesar, config)
