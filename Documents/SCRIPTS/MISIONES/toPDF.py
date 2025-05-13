@@ -1,5 +1,5 @@
 import os
-from tkinter import Tk
+from tkinter import tk
 from reportlab.lib.pagesizes import landscape, letter, portrait
 from reportlab.pdfgen import canvas
 import re
@@ -7,29 +7,25 @@ import re
 
 class GeneradorPDF:
 
-
     def __init__(self, archivo_txt, salida_pdf):
         self.archivo_txt = archivo_txt #Nombre del archivo txt que vamos a procesar
         self.salida_pdf = salida_pdf #Nombre del archivo del PDF convertido
         self.form = 'DLFT00' #asignamos un formulario tipo default
         self.config = estilo_pagina(self.form)
         self.c = canvas.Canvas(self.salida_pdf)
-        self.textobject = None #Se establecera en configurar_pagina()
         self.cont = 0 #contador de líneas en la página
 
     def procesar(self):
-
         '''
         Procesa el archivo y genera el pdf
         '''
-        
         with open(self.archivo_txt, 'r', encoding='utf-8') as f:
 
             #instanciamos el objeto texto
             self.textobject = self.c.beginText()
 
             for linea in f:
-                
+                         
                 primer_caracter = linea[0] #leemos el primer caracter
                 cadena = linea[1:] #resto de la cadena
 
@@ -40,16 +36,13 @@ class GeneradorPDF:
                         self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
-                        self.config = estilo_pagina(self.form)
                         self.escribe_pdf(self.c, self.config, self.textobject)
-                        self.c.showPage() #creamos una hoja nueva
-                        self.cont = 0 #inicializamos nuevamente el contador
-                        self.textobject = self.c.beginText() #inicializamos nuevamete el objeto texto
-
-
+                        self.nueva_pagina()
+                        
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
                         self.config = estilo_pagina(self.form) #selecionamos la configuracion del formulario
+                    
                     else:
                         try:
                             next_line = next(f) #lectura de la proxima linea
@@ -57,12 +50,9 @@ class GeneradorPDF:
                             next_line = ''
 
                         if 'FIRST DATA' in next_line:
-                            #TODO: Cambiar las sigientes lineas por una funcion ***** self.nueva_pagina()
                             self.escribe_pdf(self.c, self.config, self.textobject)
-                            self.c.showPage() #creamos una hoja nueva
-                            self.cont = 0 #inicializamos nuevamente el contador
-                            self.textobject = self.c.beginText()
-
+                            self.nueva_pagina()
+                            
                 elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
                          #TODO: completar
                          #if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
@@ -81,27 +71,27 @@ class GeneradorPDF:
                     self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                 if self.cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por pagina
-                    #***self.nueva_pagina()
                     self.escribe_pdf(self.c, self.config, self.textobject)
-                    self.c.showPage() #creamos una hoja nueva
-                    self.cont = 0 #inicializamos nuevamente el contador
-                    self.textobject = self.c.beginText()
+                    self.nueva_pagina()
                     continue
-            #***self.nueva_pagina()
+
             self.escribe_pdf(self.c, self.config, self.textobject)
-            self.c.showPage() #creamos una hoja nueva
-            self.cont = 0 #inicializamos nuevamente el contador
-            self.textobject = self.c.beginText()
-            
+            self.nueva_pagina()
+
         self.c.save()
-    '''
+    
     def nueva_pagina(self):
-        self.config = estilo_pagina(self.form)
-        self.escribe_pdf(self.c, self.config, self.textobject)
+        '''
+        Agrega una paguina al pdf
+        Inicializa el contador
+        reinicia el objeto texto
+        '''
+        if self.config is None:
+            self.config = estilo_pagina(self.form)
         self.c.showPage()
         self.cont = 0
         self.textobject = self.c.beginText()
-    '''
+    
     
     def escribe_pdf (self, c, config, texto):
         """
@@ -119,7 +109,7 @@ class GeneradorPDF:
         c.setFont(config['font_name'], config['tamaño_letra'])
 
         #grabamos en texto en el pdf
-        texto.setTextOrigin(config['x_offset'], config['y'])
+        texto.setTextOrigin(config['x_offset'], config['y']) #colocamos el puntero donde corresponde
         c.drawText(texto)
 
 
@@ -238,11 +228,9 @@ def decoder(codigo):
     'WnNwn': '85', 'wNNwn': '86', 'wnnWN': '87', 'WnnWn': '88', 'wNnWn': '89',
     'nwNWn': '90', 'NwnwN': '91', 'nWnwN': '92', 'NWnwn': '93', 'nwNwN': '94',
     'NwNwn': '95', 'nWNwn': '96', 'nwnWN': '97', 'NwnWn': '98', 'nWnWn': '99'
-}
-
-
+    }
     tarjeta_numero = ""
-
+    #recorremos el codigo tomado de 5 digitos para buscar el valor en la tabla
     for i in range(0, len(codigo), 5):
         key = codigo[i: i + 5]
         tarjeta_numero += cod[key]
@@ -293,7 +281,8 @@ def lista_nombres_archivos (ruta_carpeta):
     except IOError:
         print(f"No se pudo leer la carpeta '{ruta_carpeta}'.")
         return []
-    
+
+
 def file_sin_procesar(ruta_in, ruta_out):
     '''
     devuelve los elementos de lista_in menos lista_out,
@@ -313,6 +302,10 @@ def file_sin_procesar(ruta_in, ruta_out):
         archivos_faltantes = set_in - set_out
         # Devolver la lista de archivos faltantes
         return list(archivos_faltantes)
+    
+    except Exception as e:
+        print(f"[ERROR] No se pudo procesar archivos: {e}")
+        return []
 
 def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivos sin procesar
     '''
@@ -326,6 +319,7 @@ def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivo
         #necesario nombre_archivo
         #config['IN'] config['OUT']
         #revisar la logica por que ya creamos una clase con sus metodos correspondientes para h
+        pass
 
 def crear_interfaz_usuario(nombre_archivos, ruta):
 
@@ -354,6 +348,7 @@ def crear_interfaz_usuario(nombre_archivos, ruta):
 
     # Iniciar el bucle principal de la interfaz de usuario
     ventana.mainloop()
+
 def ajustar_tamano_fondo(ventana, fondo_label, imagen_fondo):
     nueva_ancho = ventana.winfo_width()
     nueva_alto = ventana.winfo_height()
