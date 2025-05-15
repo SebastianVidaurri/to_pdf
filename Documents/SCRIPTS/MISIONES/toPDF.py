@@ -1,9 +1,10 @@
 import os
+import re
+import sys
 from tkinter import tk
+from PIL import Image, ImageTk
 from reportlab.lib.pagesizes import landscape, letter, portrait
 from reportlab.pdfgen import canvas
-import re
-
 
 class GeneradorPDF:
 
@@ -282,7 +283,6 @@ def lista_nombres_archivos (ruta_carpeta):
         print(f"No se pudo leer la carpeta '{ruta_carpeta}'.")
         return []
 
-
 def file_sin_procesar(ruta_in, ruta_out):
     '''
     devuelve los elementos de lista_in menos lista_out,
@@ -308,18 +308,31 @@ def file_sin_procesar(ruta_in, ruta_out):
         return []
 
 def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivos sin procesar
-    '''
-    Llama a las funciones más importantes
-    '''
-    #funcion raiz que llama a las funciones más importantes
+    """
+    Llama a la clase GeneradorPDF para cada archivo .txt que aún no se procesó,
+    y genera su correspondiente PDF en la carpeta de salida.
     
-    sin_procesar = lista_sin_procesar
-    for nombre_archivo in sin_procesar: #recorro la lista de nombres
-        #TODO: logica para procesar el txt y generar el pdf
-        #necesario nombre_archivo
-        #config['IN'] config['OUT']
-        #revisar la logica por que ya creamos una clase con sus metodos correspondientes para h
-        pass
+    Parámetros:
+        lista_sin_procesar (list): nombres (sin extensión) de los archivos a procesar.
+        config (dict): diccionario con claves 'IN' (ruta de entrada) y 'OUT' (ruta de salida).
+    """
+    # Recorremos cada nombre de archivo pendiente (sin .txt ni .pdf)
+    for nombre_archivo in lista_sin_procesar:
+        # --- Construimos rutas de entrada y salida ---
+        # Ruta completa al archivo .txt de entrada
+        ruta_txt = os.path.join(config['IN'], nombre_archivo)
+        # Ruta completa donde guardaremos el PDF
+        ruta_pdf = os.path.join(config['OUT'], nombre_archivo + '.pdf')
+        
+        # Creamos un objeto GeneradorPDF con la ruta de entrada y salida
+        generador = GeneradorPDF(ruta_txt, ruta_pdf)
+        
+        # Llamamos al método que lee el .txt y escribe el PDF
+        try:
+            generador.procesar()
+        except Exception as e:
+            # Si falla, lo imprimimos para poder depurar luego
+            print(f"[ERROR] Al procesar '{ruta_txt}': {e}")
 
 def crear_interfaz_usuario(nombre_archivos, ruta):
 
