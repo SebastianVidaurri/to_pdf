@@ -1,10 +1,13 @@
 import os
 import re
 import sys
+import treepoem
 from tkinter import tk
 from PIL import Image, ImageTk
 from reportlab.lib.pagesizes import landscape, letter, portrait
 from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from io import BytesIO
 
 class GeneradorPDF:
 
@@ -92,8 +95,7 @@ class GeneradorPDF:
         self.c.showPage()
         self.cont = 0
         self.textobject = self.c.beginText()
-    
-    
+
     def escribe_pdf (self, c, config, texto):
         """
         Configura y escribe el texto  a un pdf
@@ -112,9 +114,6 @@ class GeneradorPDF:
         #grabamos en texto en el pdf
         texto.setTextOrigin(config['x_offset'], config['y']) #colocamos el puntero donde corresponde
         c.drawText(texto)
-
-
-
 
     def extraer_form(self, linea):
 
@@ -139,7 +138,37 @@ class GeneradorPDF:
             return 'ETQIBM'  # Devuelve 'ETQIBM' si no hay coincidencia con FORMS pero sí con 'ETQIBM'
         else:
             return None  # Ninguna coincidencia
-        
+    
+    def incrusta_barcode (self, c, codigo, x, y):
+        '''
+        Genera un codigo de barras y lo incruta en el pdf
+        formato del cogido de barras: interleaved 2 to 5
+
+        argumentos:
+        c: objeto camvas
+        codigo: numero entero que representara el codigo de barras
+        x - y: coordenadas x e y
+
+        '''
+        barcode = treepoem.generate_barcode(
+        barcode_type="interleaved2of5",
+        data=codigo
+        )
+
+        # Crear un flujo en memoria para almacenar la imagen
+        image_stream = BytesIO()
+        barcode.convert("1").save(image_stream, format="PNG") # Modo: 1-bit por píxel, blanco y negro puro
+        image_stream.seek(0)  # Volver al inicio del flujo
+
+        # Usar ImageReader para leer la imagen desde el flujo
+        barcode_image = ImageReader(image_stream)
+
+        # Dibujar la imagen en el PDF, sin deformar la proporción 150:30
+        c.drawImage(barcode_image, x=x, y=y, width=150, preserveAspectRatio=True, mask='auto') #height=30)
+
+        # Liberar manualmente el flujo en memoria
+        image_stream.close()
+
 def estilo_pagina(form ='DLFT00'):
     '''
     Esta función recibe el tipo de formulario y devuelve la configuración correspondiente.
@@ -309,7 +338,7 @@ def file_sin_procesar(ruta_in, ruta_out):
 
 def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivos sin procesar
     """
-    Llama a la clase GeneradorPDF para cada archivo .txt que aún no se procesó,
+    Llama a la clase GeneradorPDF para cada archivo que aún no se procesó,
     y genera su correspondiente PDF en la carpeta de salida.
     
     Parámetros:
