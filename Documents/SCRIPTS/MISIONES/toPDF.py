@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import treepoem
-from tkinter import tk
+import tkinter as tk
 from PIL import Image, ImageTk
 from reportlab.lib.pagesizes import landscape, letter, portrait
 from reportlab.pdfgen import canvas
@@ -23,16 +23,16 @@ class GeneradorPDF:
         '''
         Procesa el archivo y genera el pdf
         '''
-        with open(self.archivo_txt, 'r', encoding='utf-8') as f:
-
+        print("El archivo que abrira el generador es: " + self.archivo_txt)
+        with open(self.archivo_txt, 'r', encoding='utf-8', errors="replace") as f:
             #instanciamos el objeto texto
             self.textobject = self.c.beginText()
 
             for linea in f:
-                         
                 primer_caracter = linea[0] #leemos el primer caracter
                 cadena = linea[1:] #resto de la cadena
-
+                print("El primer caracter es: " + primer_caracter)
+                
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
@@ -151,7 +151,7 @@ class GeneradorPDF:
 
         '''
         barcode = treepoem.generate_barcode(
-        barcode_type="interleaved2of5",
+        barcode_type="interleaved2of5", 
         data=codigo
         )
 
@@ -228,7 +228,7 @@ def estilo_pagina(form ='DLFT00'):
     elif form in formulario_codbarra:
         return configuraciones['codbarra']     # Configuración para los codigos de barras
     else:
-        return None     # si no existe la configuracíon
+        return configuraciones['default']     # si no existe la configuracíon asignamos una por default
 
 def decoder(codigo):
 
@@ -354,6 +354,8 @@ def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivo
         ruta_pdf = os.path.join(config['OUT'], nombre_archivo + '.pdf')
         
         # Creamos un objeto GeneradorPDF con la ruta de entrada y salida
+        print("Se generara el PDF de: " + ruta_txt) #************************************************************************************************ eliminar
+        print("y se guardara en: " + ruta_pdf)      #************************************************************************************************ eliminar
         generador = GeneradorPDF(ruta_txt, ruta_pdf)
         
         # Llamamos al método que lee el .txt y escribe el PDF
