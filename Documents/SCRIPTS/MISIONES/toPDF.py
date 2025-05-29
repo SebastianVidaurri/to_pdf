@@ -16,33 +16,52 @@ class GeneradorPDF:
         self.salida_pdf = salida_pdf #Nombre del archivo del PDF convertido
         self.form = 'DLFT00' #asignamos un formulario tipo default
         self.config = estilo_pagina(self.form)
-        self.c = canvas.Canvas(self.salida_pdf)
         self.cont = 0 #contador de líneas en la página
 
     def procesar(self):
         '''
         Procesa el archivo y genera el pdf
         '''
-        print("El archivo que abrira el generador es: " + self.archivo_txt)
+        
+        print("El archivo que abrira el generador es: " + self.archivo_txt) #--------------------------------Eliminar
         with open(self.archivo_txt, 'r', encoding='utf-8', errors="replace") as f:
             #instanciamos el objeto texto
-            self.textobject = self.c.beginText()
+            c = canvas.Canvas(self.salida_pdf) #instanciamos el objeto canvas para harmar el pdf
+            textobject = c.beginText()
+            textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #es necesario que setiemos las coordenadas de escritira antes de acumular lineas de texto
+           
+            #can = canvas.Canvas("prueba_textobject.pdf", pagesize=landscape(letter)) #------------------------------------------------ELIMINAR
+            #texto = can.beginText() #------------------------------------------------------------Eliminar
 
-            for linea in f:
+            for linea in f: #for para recorrer el archivo
                 primer_caracter = linea[0] #leemos el primer caracter
                 cadena = linea[1:] #resto de la cadena
-                print("El primer caracter es: " + primer_caracter)
                 
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
-
+                
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
-                        self.textobject.textLine(cadena) #guardo la linea
+                        textobject.textLine(cadena) #guardo la linea
                         self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
+                        print(cadena) #------------------------------------------------------------Eliminar
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
-                        self.escribe_pdf(self.c, self.config, self.textobject)
-                        self.nueva_pagina()
+                        #grabo el texto que tengo y abro una hoja nueva
                         
+
+                        ####---------------------------logica para escribir un pdf -----------------
+                        #width, height = landscape(letter)
+                        #margen = 20
+                        #texto.setTextOrigin(margen, height - margen)
+                        #texto.textLine("Primera línea de texto")
+                        #texto.textLine("Segunda línea de texto")
+                        #texto.textLine("Tercera línea de texto")
+                        
+                        #self.escribe_pdf()
+                        #self.nueva_pagina()
+                        #can.drawText(texto)
+                        #self.c.save()
+                        #print("Ultima cadena: " + cadena)
+
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
                         self.config = estilo_pagina(self.form) #selecionamos la configuracion del formulario
@@ -54,7 +73,7 @@ class GeneradorPDF:
                             next_line = ''
 
                         if 'FIRST DATA' in next_line:
-                            self.escribe_pdf(self.c, self.config, self.textobject)
+                            self.escribe_pdf()
                             self.nueva_pagina()
                             
                 elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
@@ -75,14 +94,13 @@ class GeneradorPDF:
                     self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                 if self.cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por pagina
-                    self.escribe_pdf(self.c, self.config, self.textobject)
-                    self.nueva_pagina()
+                    #self.escribe_pdf()
+                    #self.nueva_pagina()
                     continue
-
-            self.escribe_pdf(self.c, self.config, self.textobject)
-            self.nueva_pagina()
-
+            #self.escribe_pdf()
+            #self.nueva_pagina()
         self.c.save()
+        can.save()
     
     def nueva_pagina(self):
         '''
@@ -91,29 +109,31 @@ class GeneradorPDF:
         reinicia el objeto texto
         '''
         if self.config is None:
-            self.config = estilo_pagina(self.form)
+            self.config = estilo_pagina(self.form) #utiliza el ultimo formulario que queda guardado en memoria dentro
         self.c.showPage()
         self.cont = 0
         self.textobject = self.c.beginText()
 
-    def escribe_pdf (self, c, config, texto):
+    def escribe_pdf (self):
         """
         Configura y escribe el texto  a un pdf
 
-        parametros:
+        Utiliza los atributos de la clase:
             c: objeto canvas
             config: lista con los valores de configuración
             texto: el texto que de decea escribir en el pdf
         """
         #setear el tamaño de la pagina
-        c.setPageSize(config['orientacion'])
+        self.c.setPageSize(self.config['orientacion'])
 
         #set font
-        c.setFont(config['font_name'], config['tamaño_letra'])
+        self.c.setFont(self.config['font_name'], self.config['tamaño_letra'])
 
         #grabamos en texto en el pdf
-        texto.setTextOrigin(config['x_offset'], config['y']) #colocamos el puntero donde corresponde
-        c.drawText(texto)
+        self.textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #colocamos el puntero donde corresponde
+        print(self.config['x_offset']) #-----------------------------------------------------------ELIMINAR
+        print(self.config['y']) #-----------------------------------------------------------ELIMINAR
+        self.c.drawText(self.textobject)
 
     def extraer_form(self, linea):
 
@@ -178,32 +198,32 @@ def estilo_pagina(form ='DLFT00'):
     configuraciones = {
         'default': {
             'orientacion': landscape(letter) , 'marco': False, 'base': None, 'altura': None, 
-            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 590, 'font_name': 'Courier', 
-            'tamaño_letra': 7, 'x_offset': -85, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
+            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 592, 'font_name': 'Courier', 
+            'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
             'marca_agua' : False, 'cod_barra' : False
         },
         'etiqueta': {
             'orientacion': portrait(letter), 'marco': False, 'base': None, 'altura': None, 
             'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 785, 'font_name': 'Courier', 
-            'tamaño_letra': 9, 'x_offset': -95, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
-            'marca_agua' : False, 'cod_barra' : False
+            'tamaño_letra': 9, 'x_offset': 5, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
+            'marca_agua' : False, 'cod_barra' : False #y': 785,
         },
         'vertical': {
             'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
             'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
-            'tamaño_letra': 7, 'x_offset': -75, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
-            'marca_agua' : True, 'cod_barra' : False        
+            'tamaño_letra': 7, 'x_offset': 25, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
+            'marca_agua' : True, 'cod_barra' : False        #y': 750,
         },
         'horizontal': {
             'orientacion': landscape(letter), 'marco': True, 'base': 760, 'altura': 584, 
-            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 590, 'font_name': 'Courier-Bold', 
-            'tamaño_letra': 7, 'x_offset': -85, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 750, 'font_name': 'Courier-Bold', 
+            'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : True, 'cod_barra' : False
         },
         'codbarra': {
             'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
             'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
-            'tamaño_letra': 8, 'x_offset': -85, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
+            'tamaño_letra': 8, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : False, 'cod_barra' : True, 
         }
     }
@@ -354,8 +374,6 @@ def crea_archivos (lista_sin_procesar, config): #lista de nombres de los archivo
         ruta_pdf = os.path.join(config['OUT'], nombre_archivo + '.pdf')
         
         # Creamos un objeto GeneradorPDF con la ruta de entrada y salida
-        print("Se generara el PDF de: " + ruta_txt) #************************************************************************************************ eliminar
-        print("y se guardara en: " + ruta_pdf)      #************************************************************************************************ eliminar
         generador = GeneradorPDF(ruta_txt, ruta_pdf)
         
         # Llamamos al método que lee el .txt y escribe el PDF
