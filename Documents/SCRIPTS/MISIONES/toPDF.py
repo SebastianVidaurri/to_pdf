@@ -42,7 +42,7 @@ class GeneradorPDF:
                         c.drawText(textobject) #dibujamos el texto
                         c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
                         textobject = c.beginText() #inicializamos el texto
-                        c.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
+                        textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
                         textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
                         self.cont = 0
                         c.showPage() #Cerramos la hoja y creamos una nueva
@@ -82,7 +82,7 @@ class GeneradorPDF:
                     c.drawText(textobject) #dibujamos el texto
                     c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
                     textobject = c.beginText() #inicializamos el texto
-                    c.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
+                    textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
                     textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
                     self.cont = 0
                     c.showPage() #Cerramos la hoja y creamos una nueva
@@ -92,7 +92,7 @@ class GeneradorPDF:
             c.drawText(textobject) #dibujamos el texto
             c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
             textobject = c.beginText() #inicializamos el texto
-            c.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
+            textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
             textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
             self.cont = 0
             c.showPage() #Cerramos la hoja y creamos una nueva
@@ -116,7 +116,7 @@ class GeneradorPDF:
         c.showPage() #Cerramos la hoja y creamos una nueva
         c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
         textobject = c.beginText() #inicializamos el texto
-        c.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
+        textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
         textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
         self.cont = 0
 
@@ -184,31 +184,31 @@ def estilo_pagina(form ='DLFT00'):
         'default': {
             'orientacion': landscape(letter) , 'marco': False, 'base': None, 'altura': None, 
             'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 592, 'font_name': 'Courier', 
-            'tamaño_letra': 1, 'x_offset': 15, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
+            'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
             'marca_agua' : False, 'cod_barra' : False
         },
         'etiqueta': {
             'orientacion': portrait(letter), 'marco': False, 'base': None, 'altura': None, 
             'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 785, 'font_name': 'Courier', 
-            'tamaño_letra': 3, 'x_offset': 5, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
+            'tamaño_letra': 9, 'x_offset': 5, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
             'marca_agua' : False, 'cod_barra' : False #y': 785,
         },
         'vertical': {
             'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
             'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
-            'tamaño_letra': 1, 'x_offset': 25, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
+            'tamaño_letra': 7, 'x_offset': 25, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
             'marca_agua' : True, 'cod_barra' : False        #y': 750,
         },
         'horizontal': {
             'orientacion': landscape(letter), 'marco': True, 'base': 760, 'altura': 584, 
             'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 750, 'font_name': 'Courier-Bold', 
-            'tamaño_letra': 1, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
+            'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : True, 'cod_barra' : False
         },
         'codbarra': {
             'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
             'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
-            'tamaño_letra': 2, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
+            'tamaño_letra': 8, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : False, 'cod_barra' : True, 
         }
     }
