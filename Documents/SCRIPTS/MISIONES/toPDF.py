@@ -22,7 +22,7 @@ class GeneradorPDF:
         '''
         Procesa el archivo y genera el pdf
         '''
-        with open(self.archivo_txt, 'r', encoding='utf-8', errors="replace") as f:
+        with open(self.archivo_txt, 'r', encoding='utf-8', errors="ignore") as f:
             #instanciamos el objeto texto
             c = canvas.Canvas(self.salida_pdf) #instanciamos el objeto canvas para harmar el pdf
             textobject = c.beginText() #instanciamos el objeto texto para acumular las lineas necesarias
@@ -30,13 +30,23 @@ class GeneradorPDF:
             c.setPageSize(self.config['orientacion']) #dimencionamos la hoja pdf según la orientación
             for linea in f: #for para recorrer el archivo
                 primer_caracter = linea[0] #leemos el primer caracter
-                cadena = linea[1:] #resto de la cadena
-                
+                cadena = linea[1:].rstrip() #resto de la cadena sin caracteres especiales al final
+                                
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
-                
+                    #TODO: si es un 1 y tengo la palabra FIRSR DATA no tengo que escribir y luego abrir una hoja nueva
+                    #en todo cado tengo que crear la hoja, inicializar el texto y el tamaño y luego guardar la linea en la caja de texto
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
+                        c.drawText(textobject) #dibujamos el texto
+                        c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
+
+                        textobject = c.beginText() #inicializamos el texto
+                        textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
+                        textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
+                        self.cont = 0
+                        c.showPage() #Cerramos la hoja y creamos una nueva
+
                         textobject.textLine(cadena) #guardo la linea
-                        self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
+                        #self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                     elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
                         c.drawText(textobject) #dibujamos el texto
@@ -51,6 +61,7 @@ class GeneradorPDF:
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
                         self.config = estilo_pagina(self.form) #selecionamos la configuracion del formulario
+                        print (cadena)
                     
                     else:
                         try:
@@ -72,9 +83,11 @@ class GeneradorPDF:
                 elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
 
-                elif primer_caracter == ' ' or primer_caracter == '0': 
+                elif primer_caracter in ('', ' ', '0', '\n'):
+                                        
                     if 'DJDE' in cadena: #si vemos DJDE en la linea no guardamos nada
                         continue
+
                     textobject.textLine(cadena) #guardamos la linea
                     self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
@@ -183,7 +196,7 @@ def estilo_pagina(form ='DLFT00'):
     configuraciones = {
         'default': {
             'orientacion': landscape(letter) , 'marco': False, 'base': None, 'altura': None, 
-            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 592, 'font_name': 'Courier', 
+            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 590, 'font_name': 'Courier', 
             'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
             'marca_agua' : False, 'cod_barra' : False
         },
@@ -191,23 +204,23 @@ def estilo_pagina(form ='DLFT00'):
             'orientacion': portrait(letter), 'marco': False, 'base': None, 'altura': None, 
             'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 785, 'font_name': 'Courier', 
             'tamaño_letra': 9, 'x_offset': 5, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
-            'marca_agua' : False, 'cod_barra' : False #y': 785,
+            'marca_agua' : False, 'cod_barra' : False
         },
         'vertical': {
             'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
-            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier', 
             'tamaño_letra': 7, 'x_offset': 25, 'limite': 90, 'interlineado' : 8,'name_config' : 'vertical',
-            'marca_agua' : True, 'cod_barra' : False        #y': 750,
+            'marca_agua' : True, 'cod_barra' : False
         },
         'horizontal': {
             'orientacion': landscape(letter), 'marco': True, 'base': 760, 'altura': 584, 
-            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 750, 'font_name': 'Courier-Bold', 
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 13.0, 'y': 590, 'font_name': 'Courier', 
             'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : True, 'cod_barra' : False
         },
         'codbarra': {
             'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
-            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier-Bold', 
+            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier', 
             'tamaño_letra': 8, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : False, 'cod_barra' : True, 
         }
