@@ -22,34 +22,30 @@ class GeneradorPDF:
         '''
         Procesa el archivo y genera el pdf
         '''
+        
+       # if any(nombre in self.archivo_txt for nombre in nombre_acuses): #verificamos si algunos de los nombres esten en la lista de acuses
+        #    with open(self.archivo_txt, 'r', encoding='utf-8', errors="ignore") as f:
+                #configurar paguina
+         #       
+          #  pass
+
         with open(self.archivo_txt, 'r', encoding='utf-8', errors="ignore") as f:
             #instanciamos el objeto texto
             c = canvas.Canvas(self.salida_pdf) #instanciamos el objeto canvas para harmar el pdf
             textobject = c.beginText() #instanciamos el objeto texto para acumular las lineas necesarias
             textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #Coordenadas de inicio de escritura del texto
             c.setPageSize(self.config['orientacion']) #dimencionamos la hoja pdf según la orientación
+            primer_caracter = " "
 
             for linea in f: #for para recorrer el archivo
+                caracter_anterior = primer_caracter #guardamos el valor para poder indentificar las combinaciones de los primeros caracteres
+                #si viene un 1 en el primer caracter y en la siguiente linea viene un 0 entonces es un acuse
                 primer_caracter = linea[0] #leemos el primer caracter
-                cadena = linea[1:].rstrip() #resto de la cadena sin caracteres especiales al final      
+                cadena = linea[1:].rstrip() #resto de la cadena sin caracteres especiales al final
+                print(primer_caracter) #***********************************************************************
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
-                    #TODO: si es un 1 y tengo la palabra FIRSR DATA no tengo que escribir y luego abrir una hoja nueva
-                    #en todo cado tengo que crear la hoja, inicializar el texto y el tamaño y luego guardar la linea en la caja de texto
-                    if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena): #la linea comienza con alguno de estos string
-                        c.drawText(textobject) #dibujamos el texto
-                        c.showPage() #Cerramos la hoja y creamos una nueva
 
-                        c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
-                        textobject = c.beginText() #inicializamos el texto
-                        textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
-                        textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
-                        self.cont = 0
-                        
-
-                        textobject.textLine(cadena) #guardo la linea
-                        #self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
-
-                    elif not cadena.strip(): #un codigo 1 con un string vacio representa una hoja nueva
+                    if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena) or (not cadena.strip()): #la linea comienza con alguno de estos string
                         c.drawText(textobject) #dibujamos el texto
                         c.showPage() #Cerramos la hoja y creamos una nueva
                         c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
@@ -57,7 +53,8 @@ class GeneradorPDF:
                         textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
                         textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
                         self.cont = 0
-                        
+                        if cadena.strip():
+                            textobject.textLine(cadena) #guardo la linea si almenos tiene un caracter visible
 
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
@@ -71,20 +68,21 @@ class GeneradorPDF:
 
                         if 'FIRST DATA' in next_line:
                             self.escribe_pdf (c, textobject)
-                            
+ 
                 elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
-                         #TODO: completar
-                         #if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
-                         #llamamos al decoder y guardamos el numero
-                         #
-                         #incrustar el codigo de barras
-                        pass #borrar el pass            
-            
+                        
+                        if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
+                            
+                            num_tj =  decoder(linea.strip('<>')) #decodificamos el codigo WwnN y lo guardamos
+                            print(num_tj)
+                            #una ves decodificado el codigo WwnN 
+                            self.incrusta_barcode(c, num_tj, self.config['x_offset'] + 450, self.config['y'] - 10)
+                            
                 elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
 
                 elif primer_caracter in ('', ' ', '0', '\n'):
-                                        
+                    #si el caracter anterior es un 1, entonces es un acuse hay que configurar 
                     if 'DJDE' in cadena: #si vemos DJDE en la linea no guardamos nada
                         continue
 
@@ -194,8 +192,7 @@ def estilo_pagina(form ='DLFT00'):
     # Cada configuración es un diccionario que contiene todos los parámetros.
     configuraciones = {
         'default': {
-            'orientacion': landscape(letter) , 'marco': False, 'base': None, 'altura': None, 
-            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 590, 'font_name': 'Courier', 
+            'orientacion': landscape(letter) , 'marco': False, 'y': 590, 'font_name': 'Courier', 
             'tamaño_letra': 7, 'x_offset': 15, 'limite': 70, 'interlineado' : 8,'name_config' : 'default',
             'marca_agua' : False, 'cod_barra' : False
         },
@@ -212,14 +209,12 @@ def estilo_pagina(form ='DLFT00'):
             'marca_agua' : True, 'cod_barra' : False
         },
         'etiqueta': {
-            'orientacion': portrait(letter), 'marco': False, 'base': None, 'altura': None, 
-            'grosor_linea': None, 'x_marco': None, 'y_marco': None, 'y': 785, 'font_name': 'Courier', 
+            'orientacion': portrait(letter), 'marco': False, 'y': 785, 'font_name': 'Courier', 
             'tamaño_letra': 9, 'x_offset': 5, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
             'marca_agua' : False, 'cod_barra' : False
         },
         'codbarra': {
-            'orientacion': portrait(letter), 'marco': True, 'base': 584, 'altura': 749, 
-            'grosor_linea': 1, 'x_marco': 13.0, 'y_marco': 26.0, 'y': 750, 'font_name': 'Courier', 
+            'orientacion': portrait(letter), 'marco': False, 'y': 750, 'font_name': 'Courier', 
             'tamaño_letra': 8, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
             'marca_agua' : False, 'cod_barra' : True, 
         }
@@ -230,7 +225,7 @@ def estilo_pagina(form ='DLFT00'):
     formularios_horizontal = {'FL1000', 'FM0007'}
     formularios_etiqueta = {'ETQIBM'}
     formulario_default =  {'DLFT00'}
-    formulario_codbarra = {'CODBAR'}
+    formulario_codbarra = {'CODBAR', 'BLACK', 'RECBLA'}
 
     # Verifica si el formulario pertenece a la lista de formularios horizontales, verticales o de etiquetas.
     # Devuelve la configuración correspondiente según el tipo de formulario.
