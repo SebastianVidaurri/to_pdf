@@ -42,7 +42,6 @@ class GeneradorPDF:
                 #si viene un 1 en el primer caracter y en la siguiente linea viene un 0 entonces es un acuse
                 primer_caracter = linea[0] #leemos el primer caracter
                 cadena = linea[1:].rstrip() #resto de la cadena sin caracteres especiales al final
-                print(primer_caracter) #***********************************************************************
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena) or (not cadena.strip()): #la linea comienza con alguno de estos string
@@ -71,12 +70,13 @@ class GeneradorPDF:
  
                 elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
                         
-                        if '<' in linea and '>' in linea: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
+                        if '<' in cadena and '>' in cadena: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
                             
-                            num_tj =  decoder(linea.strip('<>')) #decodificamos el codigo WwnN y lo guardamos
+                            num_tj =  decoder(cadena.replace('>', '').replace('<', '')) #decodificamos el codigo WwnN y lo guardamos
                             print(num_tj)
                             #una ves decodificado el codigo WwnN 
-                            self.incrusta_barcode(c, num_tj, self.config['x_offset'] + 450, self.config['y'] - 10)
+                            #TODO: agregar los valores de la posisicion x e y de los codigos de barras y ponerlo en la configuracion, luego cambiarlos en los valores de incrustacion
+                            self.incrusta_barcode(c, num_tj, self.config['x_offset'] + 250, self.config['y'] -100)
                             
                 elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
