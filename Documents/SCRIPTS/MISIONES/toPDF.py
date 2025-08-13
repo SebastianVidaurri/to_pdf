@@ -76,7 +76,7 @@ class GeneradorPDF:
                             print(num_tj)
                             #una ves decodificado el codigo WwnN 
                             #TODO: agregar los valores de la posisicion x e y de los codigos de barras y ponerlo en la configuracion, luego cambiarlos en los valores de incrustacion
-                            self.incrusta_barcode(c, num_tj, self.config['x_offset'] + 250, self.config['y'] -100)
+                            self.incrusta_barcode(c, num_tj, self.config['x_offset'] + 250, self.config['y'] -30)
                             
                 elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
@@ -166,8 +166,8 @@ class GeneradorPDF:
 
         '''
         barcode = treepoem.generate_barcode(
-        barcode_type="interleaved2of5", 
-        data=codigo
+                            barcode_type="interleaved2of5", 
+                            data=codigo
         )
 
         # Crear un flujo en memoria para almacenar la imagen
@@ -179,7 +179,7 @@ class GeneradorPDF:
         barcode_image = ImageReader(image_stream)
 
         # Dibujar la imagen en el PDF, sin deformar la proporción 150:30
-        c.drawImage(barcode_image, x=x, y=y, width=150, preserveAspectRatio=True, mask='auto') #height=30)
+        c.drawImage(barcode_image, x=x, y=y, width=130, height=20, preserveAspectRatio=False, mask='auto')
 
         # Liberar manualmente el flujo en memoria
         image_stream.close()
