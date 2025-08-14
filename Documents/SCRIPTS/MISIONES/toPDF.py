@@ -45,15 +45,8 @@ class GeneradorPDF:
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena) or (not cadena.strip()): #la linea comienza con alguno de estos string
-                        c.drawText(textobject) #dibujamos el texto
-                        c.showPage() #Cerramos la hoja y creamos una nueva
-                        c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
-                        textobject = c.beginText() #inicializamos el texto
-                        textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
-                        textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
-                        self.cont = 0
-                        if cadena.strip():
-                            textobject.textLine(cadena) #guardo la linea si almenos tiene un caracter visible
+                        textobject.textLine(cadena) if cadena.strip() else None #guardo la linea si almenos tiene un caracter visible
+                        textobject = self.escribe_pdf(c, textobject)  
 
                     elif 'DJDE' in cadena: #un 1 con un DJDE es por que tiene la configuracion de la hoja
                         self.form = self.extraer_form(cadena) #extraemos el tipo de formulario
@@ -90,23 +83,10 @@ class GeneradorPDF:
                     self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
                 if self.cont == self.config['limite']: #controla so llegamos a la cantidada de lineas permitidas por pagina
-                    c.drawText(textobject) #dibujamos el texto
-                    c.showPage() #Cerramos la hoja y creamos una nueva
-                    c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
-                    textobject = c.beginText() #inicializamos el texto
-                    textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
-                    textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
-                    self.cont = 0
-                    
+                    textobject = self.escribe_pdf(c, textobject)
                     continue
 
-            c.drawText(textobject) #dibujamos el texto
-            c.showPage() #Cerramos la hoja y creamos una nueva
-            c.setPageSize(self.config['orientacion']) #le damos las dimenciones según la orientación
-            textobject = c.beginText() #inicializamos el texto
-            textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
-            textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
-            self.cont = 0
+            textobject = self.escribe_pdf(c, textobject)
             
         c.save() #cerramos el PDF
 
@@ -129,6 +109,7 @@ class GeneradorPDF:
         textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
         textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
         self.cont = 0
+        return textobject
 
     def extraer_form(self, linea):
 
