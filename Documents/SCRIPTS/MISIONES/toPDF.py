@@ -38,10 +38,11 @@ class GeneradorPDF:
             primer_caracter = " "
 
             for linea in f: #for para recorrer el archivo
-                caracter_anterior = primer_caracter #guardamos el valor para poder indentificar las combinaciones de los primeros caracteres
+                #caracter_anterior = primer_caracter #guardamos el valor para poder indentificar las combinaciones de los primeros caracteres
                 #si viene un 1 en el primer caracter y en la siguiente linea viene un 0 entonces es un acuse
                 primer_caracter = linea[0] #leemos el primer caracter
-                cadena = linea[1:].rstrip() #resto de la cadena sin caracteres especiales al final
+                cadena = linea[1:].rstrip().replace("\x00", "") #resto de la cadena sin caracteres especiales al final
+        
                 if primer_caracter == '1': #el codigo uno representa novedades que se deben clasificar
 
                     if ('FIRST DATA' in cadena) or ('PROG.' in cadena) or ('NRO.' in cadena) or (not cadena.strip()): #la linea comienza con alguno de estos string
@@ -66,10 +67,8 @@ class GeneradorPDF:
                         if '<' in cadena and '>' in cadena: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
                             
                             num_tj =  decoder(cadena.replace('>', '').replace('<', '')) #decodificamos el codigo WwnN y lo guardamos
-                            print(num_tj)
-                            #una ves decodificado el codigo WwnN 
-                            #TODO: agregar los valores de la posisicion x e y de los codigos de barras y ponerlo en la configuracion, luego cambiarlos en los valores de incrustacion
-                            self.incrusta_barcode(c, num_tj, self.config['x_offset'] + 250, self.config['y'] -30)
+                            #una ves decodificado el codigo WwnN
+                            self.incrusta_barcode(c, num_tj, self.config['barcode_x'], self.config['barcode_y'])
                             
                 elif primer_caracter == '+':
                         continue #si encontramos un signo + saltamos la iteracion para no guardar nada
@@ -78,7 +77,13 @@ class GeneradorPDF:
                     #si el caracter anterior es un 1, entonces es un acuse hay que configurar 
                     if 'DJDE' in cadena: #si vemos DJDE en la linea no guardamos nada
                         continue
-
+                    
+                    if 'ADICIONAL' in cadena:
+                        for _ in range(4): #Si es un acuse y tiene adicional hay que bajar dos lineas para grabar nuevamente el numero de tarjeta
+                            textobject.textLine()
+                        
+                        self.config['barcode_y'] -= self.config['interlineado']
+                                                                    
                     textobject.textLine(cadena) #guardamos la linea
                     self.cont += 1 #queremos contar cuantas lineas hay en una hoja para saber cuando tenemos que saltar de pagina
 
@@ -194,15 +199,15 @@ def estilo_pagina(form ='DLFT00'):
             'tamaño_letra': 9, 'x_offset': 5, 'limite': 95, 'interlineado' : 9.3,'name_config' : 'etiqueta',
             'marca_agua' : False, 'cod_barra' : False
         },
-        'codbarra': {
+        'codbarra': { 
             'orientacion': portrait(letter), 'marco': False, 'y': 750, 'font_name': 'Courier', 
-            'tamaño_letra': 8, 'x_offset': 15, 'limite': 70, 'interlineado' : 8 ,'name_config' : 'horizontal',
-            'marca_agua' : False, 'cod_barra' : True, 
+            'tamaño_letra': 8, 'x_offset': 30, 'limite': 70, 'interlineado' : 48 ,'name_config' : 'horizontal',
+            'marca_agua' : False, 'cod_barra' : True, 'barcode_x': 275, 'barcode_y':720
         }
     }
     
     # Listas de formularios que pertenecen a cada configuración.
-    formularios_vertical = {'FM0006', 'FL0006', 'FL2007', 'FM0007', 'FM0004', 'FL0005', 'FM0308', 'FM0005', 'SIME18', 'FL002E', 'FM0308', 'FRBLAN'}
+    formularios_vertical = {'FM0006', 'FL0006', 'FL2007', 'FM0007', 'FM0004', 'FL0005', 'FM0308', 'FM0005', 'SIME18', 'FL002E', 'FM0308', 'FRBLAN', 'FX0505'}
     formularios_horizontal = {'FL1000', 'FM0007'}
     formularios_etiqueta = {'ETQIBM'}
     formulario_default =  {'DLFT00'}
