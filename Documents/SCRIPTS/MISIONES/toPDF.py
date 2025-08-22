@@ -8,6 +8,9 @@ from reportlab.lib.pagesizes import landscape, letter, portrait
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from io import BytesIO
+from reportlab.platypus import Paragraph, Frame
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY
 
 class GeneradorPDF:
 
@@ -63,6 +66,11 @@ class GeneradorPDF:
                             self.escribe_pdf (c, textobject)
  
                 elif primer_caracter == '2': #si el primer caracter es igual a 2 es por que hay un codigo de para hacer la barra
+                        
+                        # Suponiendo que c es el canvas
+                        #TODO: CAmbiar este codigo aquí por que es solo para probar
+                        #hay que ponerlo cuando detectamos que es un acuse antes o despues de ecribir los codigos de barra
+                        self.escribe_texto(c, "MasterCard Black", self.config['x_offset'], self.config['y'], ancho=480, alto=120)
                         
                         if '<' in cadena and '>' in cadena: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
                             
@@ -169,6 +177,49 @@ class GeneradorPDF:
 
         # Liberar manualmente el flujo en memoria
         image_stream.close()
+    
+    def escribe_texto (self, c, tipo_tarjeta, x=50, y=400, ancho=500, alto=100):
+        """Inserta un párrafo justificado en el canvas ReportLab.
+            :param c: objeto canvas
+            :param variable: texto variable (ej: 'MasterCard Black')
+            :param x, y: coordenadas inferiores del marco
+            :param ancho, alto: dimensiones del área de texto
+        """
+        # Texto con variable
+        texto = f"""Recibí conforme la/s tarjeta/s <b>{tipo_tarjeta}</b>, 
+        a mi nombre y/o los designados como autorizados en las condiciones previamente pactadas.  
+        Asimismo, y en caso de corresponder, me comprometo a destruir la/s tarjeta/s que es/son reemplazadas por la/s misma/s, 
+        en caso de no proceder a su destrucción al momento de su vencimiento."""
+    
+        # Estilos
+        styles = getSampleStyleSheet()
+        estilo = ParagraphStyle(
+            "justificado",
+            parent=styles["Normal"],
+            alignment=TA_JUSTIFY,   # 👈 justificación
+            fontName="Helvetica",
+            fontSize=10,
+            leading=14,             # interlineado
+        )
+    
+        # Crear párrafo
+        parrafo = Paragraph(texto, estilo)
+    
+        # Crear un frame (área rectangular donde se dibuja el párrafo)
+        frame = Frame(x, y, ancho, alto, showBoundary=0)
+        frame.addFromList([parrafo], c)
+
+        # ----- Pie de página (3 líneas + etiquetas) -----
+        width, height = c._pagesize  # tamaño actual de la página (vertical)
+        centros = [width * 0.2, width * 0.5, width * 0.8]
+        etiquetas = ["FECHA", "FIRMA DEL TITULAR", "ACLARACIÓN DE FIRMA"]
+
+        c.setLineWidth(1)
+        for cx, etq in zip(centros, etiquetas):
+            y_linea = pie_y + 12
+            c.line(cx - linea_ancho/2, y_linea, cx + linea_ancho/2, y_linea)
+            c.setFont("Helvetica-Bold", 9)
+            c.drawCentredString(cx, pie_y, etq)
 
 def estilo_pagina(form ='DLFT00'):
     '''
