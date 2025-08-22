@@ -200,9 +200,9 @@ def estilo_pagina(form ='DLFT00'):
             'marca_agua' : False, 'cod_barra' : False
         },
         'codbarra': { 
-            'orientacion': portrait(letter), 'marco': False, 'y': 750, 'font_name': 'Courier', 
+            'orientacion': portrait(letter), 'marco': False, 'y': 450, 'font_name': 'Courier', 
             'tamaño_letra': 8, 'x_offset': 30, 'limite': 70, 'interlineado' : 48 ,'name_config' : 'horizontal',
-            'marca_agua' : False, 'cod_barra' : True, 'barcode_x': 275, 'barcode_y':720
+            'marca_agua' : False, 'cod_barra' : True, 'barcode_x': 275, 'barcode_y':420
         }
     }
     
