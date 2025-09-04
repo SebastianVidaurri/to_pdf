@@ -70,7 +70,7 @@ class GeneradorPDF:
                         # Suponiendo que c es el canvas
                         #TODO: CAmbiar este codigo aquí por que es solo para probar
                         #hay que ponerlo cuando detectamos que es un acuse antes o despues de ecribir los codigos de barra
-                        self.escribe_texto(c, "MasterCard Black", self.config['x_offset'], self.config['y'], ancho=480, alto=120)
+                        self.escribe_texto(c, "MasterCard Black", self.config['x_offset'], 600)
                         
                         if '<' in cadena and '>' in cadena: #Si detectamos estos signos es por que estamos en presencia de un codigo de barras
                             
@@ -122,7 +122,15 @@ class GeneradorPDF:
         textobject.setFont(self.config['font_name'], self.config['tamaño_letra']) #Configuramos la fuente
         textobject.setTextOrigin(self.config['x_offset'], self.config['y']) #coordenadas de inicio de escritura
         self.cont = 0
+        
+        if self.config['marco']: #Agregamos la marca del agua y el marco solo si esta habilito
+            agregar_marca_de_agua(c, self.config['name_config']) #agregamos la marca de agua
+            c.rect(self.config['x_marco'], self.config['y_marco'], self.config['base'], self.config['altura'], stroke=1) #agregamos el marco
+        
+        
         return textobject
+    
+
 
     def extraer_form(self, linea):
 
@@ -178,7 +186,7 @@ class GeneradorPDF:
         # Liberar manualmente el flujo en memoria
         image_stream.close()
     
-    def escribe_texto (self, c, tipo_tarjeta, x=50, y=400, ancho=500, alto=100):
+    def escribe_texto (self, c, tipo_tarjeta, x=0, y=650):
         """Inserta un párrafo justificado en el canvas ReportLab.
             :param c: objeto canvas
             :param variable: texto variable (ej: 'MasterCard Black')
@@ -196,30 +204,20 @@ class GeneradorPDF:
         estilo = ParagraphStyle(
             "justificado",
             parent=styles["Normal"],
-            alignment=TA_JUSTIFY,   # 👈 justificación
+            alignment=TA_JUSTIFY,   # justificación
             fontName="Helvetica",
-            fontSize=10,
-            leading=14,             # interlineado
+            fontSize=13,
+            leading=15,             # interlineado
         )
     
         # Crear párrafo
         parrafo = Paragraph(texto, estilo)
-    
-        # Crear un frame (área rectangular donde se dibuja el párrafo)
-        frame = Frame(x, y, ancho, alto, showBoundary=0)
-        frame.addFromList([parrafo], c)
+        parrafo.wrapOn(c, 550, 200)  # ancho disponible, alto máximo
+        parrafo.drawOn(c, x, y)
 
-        # ----- Pie de página (3 líneas + etiquetas) -----
-        width, height = c._pagesize  # tamaño actual de la página (vertical)
-        centros = [width * 0.2, width * 0.5, width * 0.8]
-        etiquetas = ["FECHA", "FIRMA DEL TITULAR", "ACLARACIÓN DE FIRMA"]
-
-        c.setLineWidth(1)
-        for cx, etq in zip(centros, etiquetas):
-            y_linea = pie_y + 12
-            c.line(cx - linea_ancho/2, y_linea, cx + linea_ancho/2, y_linea)
-            c.setFont("Helvetica-Bold", 9)
-            c.drawCentredString(cx, pie_y, etq)
+        c.drawString(100, 50, "FECHA")
+        c.drawString(200, 50, "FIRMA DEL TITULAR")
+        c.drawString(350, 50, "ACLARACIÓN DE FIRMA")
 
 def estilo_pagina(form ='DLFT00'):
     '''
@@ -251,9 +249,9 @@ def estilo_pagina(form ='DLFT00'):
             'marca_agua' : False, 'cod_barra' : False
         },
         'codbarra': { 
-            'orientacion': portrait(letter), 'marco': False, 'y': 450, 'font_name': 'Courier', 
-            'tamaño_letra': 8, 'x_offset': 30, 'limite': 70, 'interlineado' : 48 ,'name_config' : 'horizontal',
-            'marca_agua' : False, 'cod_barra' : True, 'barcode_x': 275, 'barcode_y':420
+            'orientacion': portrait(letter), 'marco': True, 'y': 550, 'base': 584, 'altura': 749,'font_name': 'Courier', 
+            'tamaño_letra': 8, 'x_offset': 25, 'limite': 70, 'interlineado' : 48 ,'name_config' : 'horizontal',
+            'marca_agua' : False, 'cod_barra' : True, 'barcode_x': 275, 'barcode_y':520, 'x_marco': 13.0, 'y_marco': 26.0
         }
     }
     
@@ -278,6 +276,25 @@ def estilo_pagina(form ='DLFT00'):
         return configuraciones['codbarra']     # Configuración para los codigos de barras
     else:
         return configuraciones['default']     # si no existe la configuracíon asignamos una por default
+
+def agregar_marca_de_agua(c, orientacion):
+    '''
+        Agrega el logo de la compania y lo acomoda según la orientacion del pdf
+
+        parametros:
+            c - objeto Canvas
+            orientacion:
+                horizontal
+                vertical
+    '''
+
+    logo_path = 'agua.png'
+
+    if orientacion == 'vertical':
+        c.drawImage(logo_path, 200, 400)
+        
+    elif orientacion == 'horizontal':
+        c.drawImage(logo_path, 300, 350)
 
 def decoder(codigo):
 
